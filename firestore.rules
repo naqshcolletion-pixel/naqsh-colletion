@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidOwnerProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 100 &&
+             data.businessName is string && data.businessName.size() >= 1 && data.businessName.size() <= 120 &&
+             data.ownerMobile is string && data.ownerMobile.size() >= 4 && data.ownerMobile.size() <= 30 &&
+             (!('gstin' in data) || (data.gstin is string && data.gstin.size() <= 32)) &&
+             (!('upiId' in data) || (data.upiId is string && data.upiId.size() <= 100)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCloudSnapshot(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.label is string && data.label.size() >= 1 && data.label.size() <= 120 &&
+             data.productCount is int && data.productCount >= 0 &&
+             data.customerCount is int && data.customerCount >= 0 &&
+             data.invoiceCount is int && data.invoiceCount >= 0 &&
+             (data.totalRevenue is int || data.totalRevenue is float) && data.totalRevenue >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'ownerName', 'businessName', 'ownerMobile', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'ownerName', 'businessName', 'ownerMobile', 'gstin', 'upiId', 'createdAt', 'updatedAt']) &&
+                       isValidOwnerProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidOwnerProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerName', 'businessName', 'ownerMobile', 'gstin', 'upiId', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /cloud_snapshots/{snapshotId} {
+        allow get: if isOwner(userId) && isValidId(snapshotId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(snapshotId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'label', 'productCount', 'customerCount', 'invoiceCount', 'totalRevenue', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'label', 'productCount', 'customerCount', 'invoiceCount', 'totalRevenue', 'createdAt', 'updatedAt']) &&
+                         isValidCloudSnapshot(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(snapshotId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidCloudSnapshot(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['label', 'productCount', 'customerCount', 'invoiceCount', 'totalRevenue', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(snapshotId);
+      }
+    }
+  }
+}

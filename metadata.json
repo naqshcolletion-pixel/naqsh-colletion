@@ -1,0 +1,6 @@
+{
+  "name": "Naqsh Collection",
+  "description": "Complete boutique business management, inventory, GST & thermal PDF invoicing, PhonePe QR payments, and accounting app for Naqsh Collection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

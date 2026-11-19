@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "OwnerProfile": {
+      "title": "OwnerProfile",
+      "description": "Authenticated boutique owner profile and business configuration metadata.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the boutique owner."
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Owner full name."
+        },
+        "businessName": {
+          "type": "string",
+          "description": "Boutique business name."
+        },
+        "ownerMobile": {
+          "type": "string",
+          "description": "Owner mobile phone number."
+        },
+        "gstin": {
+          "type": "string",
+          "description": "Optional GSTIN registration number."
+        },
+        "upiId": {
+          "type": "string",
+          "description": "Optional merchant UPI ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on last update (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["userId", "ownerName", "businessName", "ownerMobile", "createdAt", "updatedAt"]
+    },
+    "CloudSyncSnapshot": {
+      "title": "CloudSyncSnapshot",
+      "description": "Native cloud backup summary snapshot of the local boutique ledger.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID."
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable backup label."
+        },
+        "productCount": {
+          "type": "integer",
+          "description": "Number of products in backup."
+        },
+        "customerCount": {
+          "type": "integer",
+          "description": "Number of customers in backup."
+        },
+        "invoiceCount": {
+          "type": "integer",
+          "description": "Number of sales invoices in backup."
+        },
+        "totalRevenue": {
+          "type": "number",
+          "description": "Cumulative revenue at snapshot time."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["userId", "label", "productCount", "customerCount", "invoiceCount", "totalRevenue", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/OwnerProfile" },
+      "description": "Owner business profile and settings metadata."
+    },
+    "/users/{userId}/cloud_snapshots/{snapshotId}": {
+      "schema": { "$ref": "#/entities/CloudSyncSnapshot" },
+      "description": "Owner-scoped cloud backup summaries."
+    }
+  }
+}
